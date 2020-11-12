@@ -1,0 +1,6 @@
+name = Procurius Open ID
+description =  Procurios Open ID implementation for SP.
+core = 7.x
+package = sprbs
+dependencies[] = sprbs
+dependencies[] = openid_connect

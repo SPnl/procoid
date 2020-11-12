@@ -1,0 +1,108 @@
+<?php
+
+/**
+ * Procurios Open ID implementation for SP.
+ *
+ * The module file contains generic functions and hooks. Code specific for
+ * this module can be found in procoid.inc and the openid_connect plugin.
+ */
+
+/**
+ * Implements hook_init().
+ */
+function procoid_init() {
+  module_load_include("inc", "procoid", "procoid");
+}
+
+/**
+ * Implements hook_ctools_plugin_directory().
+ */
+function procoid_ctools_plugin_directory($module, $plugin) {
+  if ($module == 'openid_connect') {
+    return 'plugins/' . $plugin;
+  }
+}
+
+/**
+ * Perform an action after a successful authorization.
+ *
+ * @param array $tokens
+ *   ID token and access token that we received as a result of the OpenID
+ *   Connect flow.
+ * @param object $account
+ *   The user account that has just been logged in.
+ * @param array $userinfo
+ *   The user claims returned by the OpenID Connect provider.
+ * @param string $client_name
+ *   The machine name of the OpenID Connect client plugin.
+ * @param bool $is_new
+ *   Whether the account has just been created via OpenID Connect.
+ */
+function procoid_openid_connect_post_authorize($tokens, $account, $userinfo, $client_name, $is_new) {
+  drupal_set_message($is_new ? t('Welcome!') : t('Welcome back!'));
+  if ($client_name !== 'procurios' || empty($userinfo['sp_custom/functions']) || empty($account->uid)) {
+    return;
+  }
+
+  // Store function information.
+  foreach ($userinfo['sp_custom/functions'] as $function_info) {
+    db_delete('procoid_function')
+      ->condition('uid', $account->uid)
+      ->execute();
+    db_insert('procoid_function')
+      ->fields(array(
+        'uid' => $account->uid,
+        'fid' => $function_info['id'],
+        'function' => $function_info['title'],
+        'did' => $function_info['departmentId'],
+        'department' => $function_info['department'],
+      ))
+      ->execute();
+  }
+
+  // Update user roles.
+  $function_role_mapping = variable_get('procoid_function_role_mapping', array());
+  $managed_role_ids = array_keys($function_role_mapping);
+  $user_roles_have_changed = FALSE;
+  
+  foreach ($managed_role_ids as $role_id) {
+    $role = user_role_load($role_id);
+    $user_has_role = FALSE;
+    foreach ($userinfo['sp_custom/functions'] as $function_info) {
+      if (in_array($function_info['id'], $function_role_mapping[$role_id])) {
+        $user_has_role = TRUE;
+        break;
+      }
+    }
+    if ($user_has_role) {
+      if (!isset($account->roles[$role->rid])) {
+        $account->roles[$role->rid] = $role->name;
+        $user_roles_have_changed = TRUE;
+      }
+    }
+    elseif (isset($account->roles[$role->rid])) {
+      unset($account->roles[$role->rid]);
+      $user_roles_have_changed = TRUE;
+    }
+  }
+  if ($user_roles_have_changed) {
+    user_save($account);
+  }
+}
+
+/**
+ * Implements hook_form_alter().
+ */
+function procoid_form_alter(&$form, &$form_state, $form_id) {
+  switch ($form_id) {
+    case 'openid_connect_login_form':
+      // Override submit handler, need to add custom scope to get functions without adding disfunctional claim info.
+      $form['#submit'] = array();
+      $form['#submit'][] = 'procoid_openid_connect_login_form_submit';
+      break;
+
+    case 'openid_connect_admin_form':
+      procoid_alter_openid_connect_admin_form($form, $form_state);
+      break;
+  }
+}
