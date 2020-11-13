@@ -99,7 +99,7 @@ function procoid_openid_connect_post_authorize($tokens, $account, $userinfo, $cl
       }
     }
     if ($user_has_function) {
-      $has_functions[] = $function_info;
+      $has_functions[$function_id] = $function_id;
     }
     else {
       $has_not_functions[$function_id] = $function_id;
@@ -119,7 +119,7 @@ function procoid_openid_connect_post_authorize($tokens, $account, $userinfo, $cl
   $result = db_query($query, array(':uid' => $account->uid));
   while ($existing_function = $result->fetchAssoc()) {
     $user_still_has_function = FALSE;
-    foreach ($has_functions as $function_info) {
+    foreach ($user_functions as $function_info) {
       if ($existing_function['fid'] == $function_info['id'] && $existing_function['did'] == $function_info['departmentId']) {
         $user_still_has_function = TRUE;
         break;
@@ -134,7 +134,7 @@ function procoid_openid_connect_post_authorize($tokens, $account, $userinfo, $cl
   }
 
   // Merge current functions.
-  foreach ($has_functions as $function_info) {
+  foreach ($user_functions as $function_info) {
     db_merge('procoid_function')
       ->key(array(
         'uid' => $account->uid,
