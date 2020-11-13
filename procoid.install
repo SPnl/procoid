@@ -7,6 +7,12 @@ function procoid_schema() {
   $schema['procoid_function'] = array(
     'description' => 'Procurios function information.',
     'fields' => array(
+      'id' => array(
+        'description' => 'Primary key',
+        'type' => 'serial',
+        'size' => 'big',
+        'not null' => TRUE,
+      ),
       'uid' => array(
         'description' => 'User id.',
         'type' => 'int',
@@ -49,6 +55,9 @@ function procoid_schema() {
         'fid',
         'did',
       ),
+    ),
+    'primary key' => array(
+      'id',
     ),
   );
 

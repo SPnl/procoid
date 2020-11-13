@@ -84,20 +84,68 @@ function procoid_openid_connect_post_authorize($tokens, $account, $userinfo, $cl
     return;
   }
 
+  $user_functions = $userinfo['sp_custom/functions'];
+
   // Store function information.
-  foreach ($userinfo['sp_custom/functions'] as $function_info) {
+  $has_functions = array();
+  $has_not_functions = array();
+  $functions = procoid_get_function_list();
+  foreach ($functions as $function_id => $function_name) {
+    $user_has_function = FALSE;
+    foreach ($user_functions as $function_info) {
+      if ($function_info['id'] == $function_id) {
+        $user_has_function = TRUE;
+        break;
+      }
+    }
+    if ($user_has_function) {
+      $has_functions[] = $function_info;
+    }
+    else {
+      $has_not_functions[$function_id] = $function_id;
+    }
+  }
+
+  // Cleanup old functions.
+  if (!empty($has_not_functions)) {
     db_delete('procoid_function')
       ->condition('uid', $account->uid)
+      ->condition('fid', $has_not_functions, 'IN')
       ->execute();
-    db_insert('procoid_function')
-      ->fields(array(
+  }
+
+  // Delete existing function departments combinations that are not current.
+  $query = 'SELECT id, fid, did FROM {procoid_function} WHERE uid = :uid';
+  $result = db_query($query, array(':uid' => $account->uid));
+  while ($existing_function = $result->fetchAssoc()) {
+    $user_still_has_function = FALSE;
+    foreach ($has_functions as $function_info) {
+      if ($existing_function['fid'] == $function_info['id'] && $existing_function['did'] == $function_info['departmentId']) {
+        $user_still_has_function = TRUE;
+        break;
+      }
+    }
+    if (!$user_still_has_function) {
+      // Delete function.
+      db_delete('procoid_function')
+        ->condition('id', $existing_function['id'])
+        ->execute();
+    }
+  }
+
+  // Merge current functions.
+  foreach ($has_functions as $function_info) {
+    db_merge('procoid_function')
+      ->key(array(
         'uid' => $account->uid,
         'fid' => $function_info['id'],
-        'function' => $function_info['title'],
         'did' => $function_info['departmentId'],
+      ))
+      ->fields(array(
+        'function' => $function_info['title'],
         'department' => $function_info['department'],
       ))
-      ->execute();
+      ->execute(); 
   }
 
   // Update user roles.
@@ -144,4 +192,27 @@ function procoid_form_alter(&$form, &$form_state, $form_id) {
       procoid_alter_openid_connect_admin_form($form, $form_state);
       break;
   }
+}
+
+/**
+ * Implements hook_entity_info().
+ */
+function procoid_entity_info() {
+  $info = array();
+
+  $info['procoid_function'] = array(
+    'label' => t('Function'),
+    'base table' => 'procoid_function',
+    'entity keys' => array(
+      'id' => 'id',
+    ),
+    'fieldable' => FALSE,
+  );
+  return $info;
+}
+
+function procoid_views_api() {
+  return array(
+    'api' => 3,
+  );
 }
