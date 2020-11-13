@@ -24,6 +24,46 @@ function procoid_ctools_plugin_directory($module, $plugin) {
 }
 
 /**
+ * Pre authorize hook that runs before a user is authorized.
+ *
+ * @param array $tokens
+ *   ID token and access token that we received as a result of the OpenID
+ *   Connect flow.
+ * @param object $account
+ *   The user account if it exists, false if not.
+ * @param array $userinfo
+ *   The user claims returned by the OpenID Connect provider.
+ * @param string $client_name
+ *   The machine name of the OpenID Connect client plugin.
+ *
+ * @return bool
+ *   TRUE if user should be logged into Drupal. FALSE if not.
+ */
+function procoid_openid_connect_pre_authorize($tokens, $account, $userinfo, $client_name) {
+  // When mapped roles only are allowed to login.
+  $mapped_role_only_login = variable_get('procoid_mapped_role_only_login', FALSE);
+  if ($mapped_role_only_login) {
+    // Only allow users with function mapped to role to login.
+    $function_role_mapping = variable_get('procoid_function_role_mapping', array());
+
+    foreach ($function_role_mapping as $role_id => $functions) {
+      foreach ($userinfo['sp_custom/functions'] as $function_info) {
+        if (in_array($function_info['id'], $functions)) {
+          return TRUE;
+        }
+      }
+    }
+
+    // Block all others.
+    drupal_set_message(t('You have no permission to login to this website'), 'error');
+    return FALSE;
+  }
+
+  // Default allow login.
+  return TRUE;
+}
+
+/**
  * Perform an action after a successful authorization.
  *
  * @param array $tokens
@@ -40,7 +80,7 @@ function procoid_ctools_plugin_directory($module, $plugin) {
  */
 function procoid_openid_connect_post_authorize($tokens, $account, $userinfo, $client_name, $is_new) {
   drupal_set_message($is_new ? t('Welcome!') : t('Welcome back!'));
-  if ($client_name !== 'procurios' || empty($userinfo['sp_custom/functions']) || empty($account->uid)) {
+  if ($client_name !== 'procurios' || empty($userinfo['sp_custom/functions'])) {
     return;
   }
 
@@ -62,14 +102,13 @@ function procoid_openid_connect_post_authorize($tokens, $account, $userinfo, $cl
 
   // Update user roles.
   $function_role_mapping = variable_get('procoid_function_role_mapping', array());
-  $managed_role_ids = array_keys($function_role_mapping);
   $user_roles_have_changed = FALSE;
   
-  foreach ($managed_role_ids as $role_id) {
+  foreach ($function_role_mapping as $role_id => $functions) {
     $role = user_role_load($role_id);
     $user_has_role = FALSE;
     foreach ($userinfo['sp_custom/functions'] as $function_info) {
-      if (in_array($function_info['id'], $function_role_mapping[$role_id])) {
+      if (in_array($function_info['id'], $functions)) {
         $user_has_role = TRUE;
         break;
       }
