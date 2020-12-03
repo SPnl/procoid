@@ -178,6 +178,25 @@ function procoid_openid_connect_post_authorize($tokens, $account, $userinfo, $cl
 }
 
 /**
+ * Alter the list of possible scopes and claims.
+ *
+ * @see openid_connect_claims
+ *
+ * @param array &$claims
+ */
+function procoid_openid_connect_claims_alter(array &$claims) {
+  $claims['phone'] = array(
+    'scope' => 'sp_custom/extra',
+  );
+  $claims['middle_name'] = array(
+    'scope' => 'sp_custom/extra',
+  );
+  $claims['last_name'] = array(
+    'scope' => 'sp_custom/extra',
+  );
+}
+
+/**
  * Implements hook_form_alter().
  */
 function procoid_form_alter(&$form, &$form_state, $form_id) {
@@ -211,6 +230,9 @@ function procoid_entity_info() {
   return $info;
 }
 
+/**
+ * Implements hook_views_api().
+ */
 function procoid_views_api() {
   return array(
     'api' => 3,

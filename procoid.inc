@@ -14,6 +14,7 @@ function procoid_openid_connect_login_form_submit(&$form, &$form_state) {
 
   // Custom code: Add custom scope.
   $scopes .= ' sp_custom/functions';
+  $scopes .= ' sp_custom/extra';
   // End custom code.
 
   $_SESSION['openid_connect_op'] = 'login';
