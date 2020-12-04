@@ -70,9 +70,12 @@ function procoid_get_function_list() {
  * Alter openid_connect_admin_form.
  */
 function procoid_alter_openid_connect_admin_form(&$form, &$form_state) {
+
+  $form['#prefix'] = "<div id='procoid_ajax'>";
+  $form['#suffix'] = "</div>";
   
   // Add submit function.
-  $form['#submit'][] = 'procoid_alter_openid_connect_admin_form_submit';
+  $form['#validate'][] = 'procoid_alter_openid_connect_admin_form_submit';
 
   // Add role function role mapping form.
   $form['function_role_mapping'] = array(
@@ -82,7 +85,7 @@ function procoid_alter_openid_connect_admin_form(&$form, &$form_state) {
 
   $form['function_role_mapping']['restrict'] = array(
     '#type' => 'checkboxes',
-    '#options' => array('restrict' => 'Restrict login to users with assigned role(s)'),
+    '#options' => array('restrict' => 'Restrict OpenID login to users with assigned role(s)'),
     '#default_value' => empty(variable_get('procoid_mapped_role_only_login', FALSE)) ? array() : array('restrict' => 'restrict'),
   );
 
@@ -90,6 +93,7 @@ function procoid_alter_openid_connect_admin_form(&$form, &$form_state) {
   $function_list = procoid_get_function_list();
   $function_role_mapping = variable_get('procoid_function_role_mapping', array());
 
+  $selected_function_list = array();
   foreach ($configurable_roles as $role_id => $role_name) {
     $form['function_role_mapping']['role_' . $role_id] = array(
       '#title' => 'Role: ' . $role_name,
@@ -97,8 +101,34 @@ function procoid_alter_openid_connect_admin_form(&$form, &$form_state) {
       '#multiple' => TRUE,
       '#options' => $function_list,
       '#default_value' => $function_role_mapping[$role_id],
+      '#ajax' => array(
+        'callback' => 'procoid_ajax_callback',
+        'wrapper' => 'procoid_ajax',
+      ),
     );
+    foreach ($function_role_mapping[$role_id] as $function_id => $function_value) {
+      if (!empty($function_value)) {
+        $selected_function_list[$function_id] = $function_list[$function_id];
+      }
+    }
   }
+
+  // Add Procurios selection select for cron sync.
+  $form['selection_box'] = array(
+    '#type' => 'fieldset',
+  );
+
+  natsort($selected_function_list);
+  $selected_functions = implode(', ', $selected_function_list);
+  $selection_list = procapi_selection_get_select_list();
+  $form['selection_box']['selection'] = array(
+    '#type' => 'select',
+    '#title' => t('Choose the Procurios selection containing contacts having one of these functions: @functions.', array('@functions' => $selected_functions)),
+    '#description' => t('If such a selection does not exist, then create such a selection in Procurios. This is needed to keep contact information in sync between contact logins.'),
+    '#default_value' => variable_get('procoid_selection', array()),
+    '#options' => $selection_list,
+    '#empty_option' => '- kies -',
+  );
 }
 
 /**
@@ -124,6 +154,7 @@ function procoid_alter_openid_connect_admin_form_submit(&$form, &$form_state) {
     }
   }
   variable_set('procoid_function_role_mapping', $mapping);
+  variable_set('procoid_selection', $values['selection_box']['selection']);
 }
 
 /**
@@ -158,3 +189,6 @@ function procoid_get_managed_roles() {
   return $managed_roles;
 }
 
+function procoid_ajax_callback($form, $form_state) {
+  return $form;
+}

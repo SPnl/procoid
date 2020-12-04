@@ -3,4 +3,5 @@ description =  Procurios Open ID implementation for SP.
 core = 7.x
 package = sprbs
 dependencies[] = sprbs
-dependencies[] = openid_connect (1.0-beta8+4-dev)
+dependencies[] = openid_connect
+dependencies[] = procapi
