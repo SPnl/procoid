@@ -19,7 +19,7 @@ Then go to /admin/config/services/openid-connect.
 4. Set the 'User claims mapping' to map Procurios relation field values to Drupal user account fields.
 5. Use 'Function role mapping' to give Procurios relations with specific functions specific Drupal roles.
 6. Optionally restrict OpenID login to Procurios relations with the selected roles only. When this is not selected, every Procurios relation that can login to Procurios can login to Drupal.
-7. Optionally select a Procurios selection containing all relations that have at least one of the selected functions. When such a selection is not available, it needs to be created in Procurios first.
+7. To (regularly) import a list of contacts from Procurios optionally select a Procurios selection containing all relations to be imported. That is, the ones that have at least one of the selected functions in step 5. When such a selection is not available, it needs to be created in Procurios first.
 8. Optionally select a existing user account field containing  the (already existing) registration number of the contact. When this is done, existing user accounts will be updated when imported from Procurios.
 
 When a Procurios selection is chosen in step 7 there are two ways to import or update all the relations in this selection in Drupal user accounts. Both these methods can be used in a cron job.
