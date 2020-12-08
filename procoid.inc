@@ -114,21 +114,34 @@ function procoid_alter_openid_connect_admin_form(&$form, &$form_state) {
   }
 
   // Add Procurios selection select for cron sync.
-  $form['selection_box'] = array(
-    '#type' => 'fieldset',
-  );
-
   natsort($selected_function_list);
   $selected_functions = implode(', ', $selected_function_list);
+  $form['procurios_import_settings'] = array(
+    '#type' => 'fieldset',
+    '#title' => 'Procurios import settings',
+    '#description' => t('Accounts will be imported from a Procurios selection using "drush procurios-import-users". This command should be executed regularly (cron) to keep account information up-to-date. If such a selection does not exist yes, then create a selection in Procurios containing contacts having one of these functions: @functions.', array('@functions' => $selected_functions)),
+  );
+
   $selection_list = procapi_selection_get_select_list();
-  $form['selection_box']['selection'] = array(
+  $form['procurios_import_settings']['selection'] = array(
     '#type' => 'select',
-    '#title' => t('Choose the Procurios selection containing contacts having one of these functions: @functions.', array('@functions' => $selected_functions)),
-    '#description' => t('If such a selection does not exist, then create such a selection in Procurios. This is needed to keep contact information in sync between contact logins.'),
+    '#title' => t('Selection', array('@functions' => $selected_functions)),
     '#default_value' => variable_get('procoid_selection', array()),
     '#options' => $selection_list,
     '#empty_option' => '- kies -',
   );
+
+  $user_field_list = procoid_get_user_field_list();
+  if (!empty($user_field_list)) {
+    $form['procurios_import_settings']['contactnumber_field'] = array(
+      '#type' => 'select',
+      '#title' => t('Choose the contactnumber field.'),
+      '#description' => t('The contactnumber field will be used to match existing accounts with newly imported accounts from Procurios.'),
+      '#default_value' => variable_get('procoid_contactnumber_field', array()),
+      '#options' => $user_field_list,
+      '#empty_option' => '- kies -',
+    );
+  }
 }
 
 /**
@@ -154,7 +167,8 @@ function procoid_alter_openid_connect_admin_form_submit(&$form, &$form_state) {
     }
   }
   variable_set('procoid_function_role_mapping', $mapping);
-  variable_set('procoid_selection', $values['selection_box']['selection']);
+  variable_set('procoid_selection', $values['procurios_import_settings']['selection']);
+  variable_set('procoid_contactnumber_field', $values['procurios_import_settings']['contactnumber_field']);
 }
 
 /**
@@ -189,6 +203,108 @@ function procoid_get_managed_roles() {
   return $managed_roles;
 }
 
+/**
+ * Ajax callback.
+ */
 function procoid_ajax_callback($form, $form_state) {
   return $form;
+}
+
+/**
+ * Return user fields.
+ */
+function procoid_get_user_field_list() {
+  $fields_info = field_info_instances('user');
+  if (!empty($fields_info['user'])) {
+    foreach ($fields_info['user']  as $field_key => $field_info) {
+      $field_list[$field_key] = $field_info['label'];
+    }
+  }
+  return $field_list;
+}
+
+/**
+ * Load user by registrationnumber.
+ */
+function procoid_user_load_by_registrationnumber($userinfo) {
+  if (!empty($userinfo['sp_custom/extra']['contact_number'])) {
+    // Check if an existing account can be found by comparing contact number.
+    $contactnumber_field = variable_get('procoid_contactnumber_field');
+    // Get account.
+    $query = new EntityFieldQuery();
+    $query
+      ->entityCondition('entity_type', 'user')
+      ->fieldCondition($contactnumber_field, 'value', $userinfo['sp_custom/extra']['contact_number'], '=');
+    $result = $query->execute();
+    if (!empty($result['user'])) {
+      $userdata = array_pop($result['user']);
+      $account = user_load($userdata->uid);
+
+      // Update userinfo.
+      $edit = array(
+        'name' => openid_connect_generate_username($sub, $userinfo, 'procurios'),
+        'pass' => user_password(),
+        'mail' => $userinfo['email'],
+        'init' => $userinfo['email'],
+        'status' => 1,
+        'openid_connect_client' => $client_name,
+        'openid_connect_sub' => $sub,
+      );
+      $account = user_save($account, $edit);
+      return $account;
+    }
+  }
+}
+
+/**
+ * Save userinfo.
+ */
+function procoid_save_userinfo($userinfo) {
+  // Code mostly based on openid_connect_complete_authorization function.
+  $sub = $userinfo['sub'];
+  if (empty($sub)) {
+    watchdog('procoid', 'No "sub" found from @provider', array('@provider' => 'procurios', WATCHDOG_ERROR));
+    return FALSE;
+  }
+
+  $account = openid_connect_user_load_by_sub($sub, 'procurios');
+
+  if (empty($account)) {
+    $account = procoid_user_load_by_registrationnumber($userinfo);
+  }
+
+
+  if ($account) {
+    // Connect account to procurios relation.
+    openid_connect_connect_account($account, 'procurios', $sub);
+
+    // An existing account was found. Save user claims.
+    if (variable_get('openid_connect_always_save_userinfo', TRUE)) {
+      openid_connect_save_userinfo($account, $userinfo);
+    }
+    $account_is_new = FALSE;
+  }
+  else {
+    // Check whether the e-mail address is valid.
+    if (!filter_var($userinfo['email'], FILTER_VALIDATE_EMAIL)) {
+      drupal_set_message(t('The e-mail address %mail is not valid.', array('%mail' => $userinfo['email'])), 'error');
+
+      return FALSE;
+    }
+    // Check whether there is an e-mail address conflict.
+    if (user_load_by_mail($userinfo['email'])) {
+      drupal_set_message(t('The e-mail address %email is already taken!.', array('%email' => $userinfo['email'])), 'error');
+
+      return FALSE;
+    }
+
+    // Create a new account.
+    $account = openid_connect_create_user($sub, $userinfo, 'procurios');
+    // Reload $account in case it has been altered in a user hook elsewhere.
+    $account = user_load($account->uid);
+    openid_connect_save_userinfo($account, $userinfo);
+    $account_is_new = TRUE;
+  }
+
+  module_invoke_all('openid_connect_post_authorize', NULL, $account, $userinfo, 'procurios', $account_is_new);
 }

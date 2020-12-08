@@ -303,48 +303,9 @@ function procoid_customcron() {
   }
 }
 
-function procoid_save_userinfo($userinfo) {
-  // Code based on openid_connect_complete_authorization function.
-  $sub = $userinfo['sub'];
-  if (empty($sub)) {
-    watchdog('procoid', 'No "sub" found from @provider', array('@provider' => 'procurios', WATCHDOG_ERROR));
-    return FALSE;
-  }
-
-  $account = openid_connect_user_load_by_sub($sub, 'procurios');
-
-  if ($account) {
-    // An existing account was found. Save user claims.
-    if (variable_get('openid_connect_always_save_userinfo', TRUE)) {
-      openid_connect_save_userinfo($account, $userinfo);
-    }
-    $account_is_new = FALSE;
-  }
-  else {
-    // Check whether the e-mail address is valid.
-    if (!filter_var($userinfo['email'], FILTER_VALIDATE_EMAIL)) {
-      drupal_set_message(t('The e-mail address %mail is not valid.', array('%mail' => $userinfo['email'])), 'error');
-
-      return FALSE;
-    }
-    // Check whether there is an e-mail address conflict.
-    if (user_load_by_mail($userinfo['email'])) {
-      drupal_set_message(t('The e-mail address %email is already taken.', array('%email' => $userinfo['email'])), 'error');
-
-      return FALSE;
-    }
-
-    // Create a new account.
-    $account = openid_connect_create_user($sub, $userinfo, 'procurios');
-    // Reload $account in case it has been altered in a user hook elsewhere.
-    $account = user_load($account->uid);
-    openid_connect_save_userinfo($account, $userinfo);
-    $account_is_new = TRUE;
-  }
-
-  module_invoke_all('openid_connect_post_authorize', NULL, $account, $userinfo, 'procurios', $account_is_new);
-}
-
+/**
+ * Return custom fields.
+ */
 function procoid_get_sp_custom_fields() {
   $fields = array(
     'contact_number',
