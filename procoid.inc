@@ -230,28 +230,30 @@ function procoid_user_load_by_registrationnumber($userinfo) {
   if (!empty($userinfo['sp_custom/extra']['contact_number'])) {
     // Check if an existing account can be found by comparing contact number.
     $contactnumber_field = variable_get('procoid_contactnumber_field');
-    // Get account.
-    $query = new EntityFieldQuery();
-    $query
-      ->entityCondition('entity_type', 'user')
-      ->fieldCondition($contactnumber_field, 'value', $userinfo['sp_custom/extra']['contact_number'], '=');
-    $result = $query->execute();
-    if (!empty($result['user'])) {
-      $userdata = array_pop($result['user']);
-      $account = user_load($userdata->uid);
+    if (!empty($contactnumber_field)) {
+      // Get account.
+      $query = new EntityFieldQuery();
+      $query
+        ->entityCondition('entity_type', 'user')
+        ->fieldCondition($contactnumber_field, 'value', $userinfo['sp_custom/extra']['contact_number'], '=');
+      $result = $query->execute();
+      if (!empty($result['user'])) {
+        $userdata = array_pop($result['user']);
+        $account = user_load($userdata->uid);
 
-      // Update userinfo.
-      $edit = array(
-        'name' => openid_connect_generate_username($sub, $userinfo, 'procurios'),
-        'pass' => user_password(),
-        'mail' => $userinfo['email'],
-        'init' => $userinfo['email'],
-        'status' => 1,
-        'openid_connect_client' => $client_name,
-        'openid_connect_sub' => $sub,
-      );
-      $account = user_save($account, $edit);
-      return $account;
+        // Update userinfo.
+        $edit = array(
+          'name' => openid_connect_generate_username($sub, $userinfo, 'procurios'),
+          'pass' => user_password(),
+          'mail' => $userinfo['email'],
+          'init' => $userinfo['email'],
+          'status' => 1,
+          'openid_connect_client' => $client_name,
+          'openid_connect_sub' => $sub,
+        );
+        $account = user_save($account, $edit);
+        return $account;
+      }
     }
   }
 }
