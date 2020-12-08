@@ -1,15 +1,15 @@
 # procoid module
 The procoid module implements openid login functionality for Drupal websites using the Procurios API.
 
-**Installation instructions**
+## Installation instructions ##
 This module has dependencies on the following custom(ized) SP modules:
 
 * [https://github.com/SPnl/openid_connect](https://github.com/SPnl/openid_connect)
 * [https://github.com/SPnl/procapi](https://github.com/SPnl/procapi)
 
-The install these modules before installing procoid.
+Install and configure these modules before installing procoid.
 
-**usage**
+## usage ##
 First you need to configure the Procurios API in the [procapi module](https://github.com/SPnl/procapi) settings.
 
 Then go to /admin/config/services/openid-connect.
