@@ -24,4 +24,4 @@ Then go to /admin/config/services/openid-connect.
 
 When a Procurios selection is chosen in step 7 there are two ways to import or update all the relations in this selection in Drupal user accounts. Both these methods can be used in a cron job.
 1. Visit https://[site domain]/procoid/[drupal site cron key]
-2. use drush: drush procoid-import-users.
+2. use drush: drush procurios-import-users.
