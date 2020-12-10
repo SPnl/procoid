@@ -260,15 +260,23 @@ function procoid_customcron() {
   $relations = array();
   $selection_id = variable_get('procoid_selection');
   if (!empty($selection_id)) {
+    drush_print('Gettings contacts from Procurios selection.');
     $page_nr = 1;
     while ($relations_batch = procapi_selection_get_relations($selection_id, $page_nr)) {
+      if (drupal_is_cli()) {
+        print('.');
+       }
       $page_nr++;
       $relations = array_merge($relations, $relations_batch);
     }
   }
 
   if (!empty($relations)) {
+    drush_print("\nImporting / updating user accounts.");
     foreach($relations as $relation) {
+      if (drupal_is_cli()) {
+        print('.');
+       }
       // Create userinfo.
       $userinfo = array(
         'sub' => $relation['id'],
