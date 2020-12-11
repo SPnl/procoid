@@ -167,26 +167,58 @@ function procoid_openid_connect_post_authorize($tokens, $account, $userinfo, $cl
   $function_role_mapping = variable_get('procoid_function_role_mapping', array());
   $user_roles_have_changed = FALSE;
   
+  // Function role mapping.
   foreach ($function_role_mapping as $role_id => $functions) {
     $role = user_role_load($role_id);
-    $user_has_role = FALSE;
-    foreach ($userinfo['sp_custom/functions'] as $function_info) {
-      if (in_array($function_info['id'], $functions)) {
-        $user_has_role = TRUE;
-        break;
+    if (!empty($role)) {
+      $user_has_role = FALSE;
+      foreach ($userinfo['sp_custom/functions'] as $function_info) {
+        if (in_array($function_info['id'], $functions)) {
+          $user_has_role = TRUE;
+          break;
+        }
       }
-    }
-    if ($user_has_role) {
-      if (!isset($account->roles[$role->rid])) {
-        $account->roles[$role->rid] = $role->name;
+      if ($user_has_role) {
+        if (!isset($account->roles[$role->rid])) {
+          $account->roles[$role->rid] = $role->name;
+          $user_roles_have_changed = TRUE;
+        }
+      }
+      elseif (isset($account->roles[$role->rid])) {
+        unset($account->roles[$role->rid]);
         $user_roles_have_changed = TRUE;
       }
     }
-    elseif (isset($account->roles[$role->rid])) {
-      unset($account->roles[$role->rid]);
-      $user_roles_have_changed = TRUE;
+  }
+
+  // Membership role mapping.
+  $memberships = array('sp', 'red');
+  $membership_key_mapping = array(
+    'sp' => 'spMember',
+    'red' => 'roodMember',
+  );
+  foreach ($memberships as $membership) {
+    $role_id = variable_get('procoid_' . $membership . '_membership_role', '');
+    if ($role_id) {
+      $role = user_role_load($role_id);
+      if (!empty($role)) {
+        if (empty($userinfo['sp_custom/extra'][$membership_key_mapping[$membership]])) {
+          if (isset($account->roles[$role_id])) {
+            unset($account->roles[$role_id]);
+            $user_roles_have_changed = TRUE;
+          }
+        }
+        else {
+          if (!isset($account->roles[$role_id])) {
+            $account->roles[$role->rid] = $role->name;
+            $user_roles_have_changed = TRUE;
+          }
+        }
+      }
     }
   }
+
+  // Store role changes.
   if ($user_roles_have_changed) {
     user_save($account);
   }
@@ -295,6 +327,8 @@ function procoid_customcron() {
           'phone_mobile' => $relation['phone_mobile'],
           'phone_work' => $relation['phone_work'],
           'email_work' => $relation['email_work'],
+          'spMember' => $relation['spMember'],
+          'roodMember' => $relation['roodMember'],
           'department_id' => $relation['deparment_id'],
           'department_contact_number' => $relation['department_contact_number'],
           'department_name' => $relation['department_name'],
@@ -304,6 +338,7 @@ function procoid_customcron() {
           'privacy_options' => $relation['privacy_options'],
           'properties' => $relation['properties'],
         ),
+        'sp_custom/functions' => $relation['functions'],
       );
       // Store userinfo in user account.
       procoid_save_userinfo($userinfo);

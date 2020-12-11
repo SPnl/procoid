@@ -70,6 +70,7 @@ function procoid_get_function_list() {
  * Alter openid_connect_admin_form.
  */
 function procoid_alter_openid_connect_admin_form(&$form, &$form_state) {
+  $configurable_roles = procoid_get_configurable_roles();
 
   $form['#prefix'] = "<div id='procoid_ajax'>";
   $form['#suffix'] = "</div>";
@@ -77,19 +78,52 @@ function procoid_alter_openid_connect_admin_form(&$form, &$form_state) {
   // Add submit function.
   $form['#validate'][] = 'procoid_alter_openid_connect_admin_form_submit';
 
+  // Add restrict login form.
+  $form['role_restrict'] = array(
+    '#type' => 'fieldset',
+    '#title' => 'Restrict login',
+  );
+
+  $form['role_restrict']['restrict'] = array(
+    '#type' => 'checkboxes',
+    '#options' => array('restrict' => 'Only Procurios users with mapped role(s) can login with OpenID'),
+    '#default_value' => empty(variable_get('procoid_mapped_role_only_login', FALSE)) ? array() : array('restrict' => 'restrict'),
+  );
+
+  // Add membership role mapping form.
+  $form['membership_role_mapping'] = array(
+    '#title' => t('Membership role mapping'),
+    '#type' => 'fieldset',
+  );
+ 
+  $memberships = array('sp', 'red');
+  foreach ($memberships as $membership) {
+    $default_value = variable_get('procoid_' . $membership . '_membership_role', '');
+    $form['membership_role_mapping'][$membership . '_membership_role'] = array(
+      '#title' => t('@membership member role:', array('@membership' => strtoupper($membership))),
+      '#type' => 'select',
+      '#options' => $configurable_roles,
+      '#empty_option' => ' - Choose - ',
+      '#default_value' => $default_value,
+      '#ajax' => array(
+        'callback' => 'procoid_ajax_callback',
+        'wrapper' => 'procoid_ajax',
+      ),
+    );
+  }
+
   // Add role function role mapping form.
+  foreach ($memberships as $membership) {
+    $selected_membership_role = variable_get('procoid_' . $membership . '_membership_role', '');
+    if (!empty($selected_membership_role)) {
+      unset($configurable_roles[$selected_membership_role]);
+    }
+  }
   $form['function_role_mapping'] = array(
     '#title' => t('Function role mapping'),
     '#type' => 'fieldset',
   );
 
-  $form['function_role_mapping']['restrict'] = array(
-    '#type' => 'checkboxes',
-    '#options' => array('restrict' => 'Restrict OpenID login to users with assigned role(s)'),
-    '#default_value' => empty(variable_get('procoid_mapped_role_only_login', FALSE)) ? array() : array('restrict' => 'restrict'),
-  );
-
-  $configurable_roles = procoid_get_configurable_roles();
   $function_list = procoid_get_function_list();
   $function_role_mapping = variable_get('procoid_function_role_mapping', array());
 
@@ -100,15 +134,17 @@ function procoid_alter_openid_connect_admin_form(&$form, &$form_state) {
       '#type' => 'checkboxes',
       '#multiple' => TRUE,
       '#options' => $function_list,
-      '#default_value' => $function_role_mapping[$role_id],
+      '#default_value' => empty($function_role_mapping[$role_id]) ? array() : $function_role_mapping[$role_id],
       '#ajax' => array(
         'callback' => 'procoid_ajax_callback',
         'wrapper' => 'procoid_ajax',
       ),
     );
-    foreach ($function_role_mapping[$role_id] as $function_id => $function_value) {
-      if (!empty($function_value)) {
-        $selected_function_list[$function_id] = $function_list[$function_id];
+    if (isset($function_role_mapping['$role_id'])) {
+      foreach ($function_role_mapping[$role_id] as $function_id => $function_value) {
+        if (!empty($function_value)) {
+          $selected_function_list[$function_id] = $function_list[$function_id];
+        }
       }
     }
   }
@@ -151,24 +187,24 @@ function procoid_alter_openid_connect_admin_form_submit(&$form, &$form_state) {
   $values = $form_state['values'];
 
   // Store restriced login.
-  variable_set('procoid_mapped_role_only_login', empty($values['function_role_mapping']['restrict']['restrict']) ? FALSE : TRUE);
+  variable_set('procoid_mapped_role_only_login', empty($values['role_restrict']['restrict']['restrict']) ? FALSE : TRUE);
 
   // Store function role mapping.
   $mapping = array();
   if (!empty($values['function_role_mapping'])) {
     // Store function role mapping.
     foreach ($values['function_role_mapping'] as $form_key => $form_values) {
-      if ($form_key !== 'restrict') {
-        if (!empty($form_values)) {
-          $role_id = substr_replace($form_key, '', 0, 5);
-          $mapping[$role_id] = $form_values;
-        }
+      if (!empty($form_values)) {
+        $role_id = substr_replace($form_key, '', 0, 5);
+        $mapping[$role_id] = $form_values;
       }
     }
   }
   variable_set('procoid_function_role_mapping', $mapping);
   variable_set('procoid_selection', $values['procurios_import_settings']['selection']);
   variable_set('procoid_contactnumber_field', $values['procurios_import_settings']['contactnumber_field']);
+  variable_set('procoid_sp_membership_role', $values['membership_role_mapping']['sp_membership_role']);
+  variable_set('procoid_red_membership_role', $values['membership_role_mapping']['red_membership_role']);
 }
 
 /**
