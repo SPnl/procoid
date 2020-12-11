@@ -140,7 +140,7 @@ function procoid_alter_openid_connect_admin_form(&$form, &$form_state) {
         'wrapper' => 'procoid_ajax',
       ),
     );
-    if (isset($function_role_mapping['$role_id'])) {
+    if (isset($function_role_mapping[$role_id])) {
       foreach ($function_role_mapping[$role_id] as $function_id => $function_value) {
         if (!empty($function_value)) {
           $selected_function_list[$function_id] = $function_list[$function_id];
