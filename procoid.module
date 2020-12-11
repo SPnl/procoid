@@ -313,35 +313,21 @@ function procoid_customcron() {
       $userinfo = array(
         'sub' => $relation['id'],
         'name' => $relation['name'],
-        'family_name' => '',
-        'given_name' => '',
+        'family_name' => $relation['family_name'],
+        'given_name' => $relation['given_name'],
         'email' => $relation['email'],
-        'email_verified' => TRUE,
-        'sp_custom/extra' => array(
-          'contact_number' => $relation['contact_number'],
-          'insertion' => '',
-          'last_name' => $relation['last_name'],
-          'address' => $relation['address'],
-          'gender' => $relation['gender'],
-          'phone' => $relation['phone'],
-          'phone_mobile' => $relation['phone_mobile'],
-          'phone_work' => $relation['phone_work'],
-          'email_work' => $relation['email_work'],
-          'spMember' => $relation['spMember'],
-          'roodMember' => $relation['roodMember'],
-          'department_id' => $relation['deparment_id'],
-          'department_contact_number' => $relation['department_contact_number'],
-          'department_name' => $relation['department_name'],
-          'region_id' => $relation['deparment_id'],
-          'region_contact_number' => $relation['region_contact_number'],
-          'region_name' => $relation['region_name'],
-          'privacy_options' => $relation['privacy_options'],
-          'properties' => $relation['properties'],
-        ),
+        'email_verified' => $relation['email_verified'],
         'sp_custom/functions' => $relation['functions'],
       );
+      $custom_fields = procoid_get_sp_custom_fields();
+      foreach ($custom_fields as $custom_field) {
+        $userinfo['sp_custom/extra'][$custom_field] = $relation[$custom_field];
+      }
       // Store userinfo in user account.
       procoid_save_userinfo($userinfo);
+    }
+    if (drupal_is_cli()) {
+      print("\n");
     }
   }
 }
@@ -352,6 +338,7 @@ function procoid_customcron() {
 function procoid_get_sp_custom_fields() {
   $fields = array(
     'contact_number',
+    'first_name',
     'insertion', 
     'last_name',
     //'address',
@@ -360,6 +347,8 @@ function procoid_get_sp_custom_fields() {
     'phone_mobile',
     'phone_work',
     'email_work',
+    //'spMember',
+    //'roodMember',
     'department_id',
     'department_contact_number',
     'department_name',
