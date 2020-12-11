@@ -155,7 +155,7 @@ function procoid_alter_openid_connect_admin_form(&$form, &$form_state) {
   $form['procurios_import_settings'] = array(
     '#type' => 'fieldset',
     '#title' => 'Procurios import settings',
-    '#description' => t('Accounts will be imported from a Procurios selection using "drush procurios-import-users". This command should be executed regularly (cron) to keep account information up-to-date. If such a selection does not exist yes, then create a selection in Procurios containing contacts having one of these functions: @functions.', array('@functions' => $selected_functions)),
+    '#description' => t('Accounts will be imported from a Procurios selection using "drush procurios-import-users". This command should be executed regularly (cron) to keep account information up-to-date. If such a selection does not exist yet, then create a selection in Procurios containing contacts having one of these functions: @functions.', array('@functions' => $selected_functions)),
   );
 
   $selection_list = procapi_selection_get_select_list();
