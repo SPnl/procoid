@@ -69,6 +69,24 @@ function procoid_openid_connect_pre_authorize($tokens, $account, $userinfo, $cli
       }
     }
 
+    // Membership role mapping.
+    $memberships = array('sp', 'red');
+    $membership_key_mapping = array(
+      'sp' => 'spMember',
+      'red' => 'roodMember',
+    );
+    foreach ($memberships as $membership) {
+      $role_id = variable_get('procoid_' . $membership . '_membership_role', '');
+      if ($role_id) {
+        $role = user_role_load($role_id);
+        if (!empty($role)) {
+          if (!empty($userinfo['sp_custom/extra'][$membership_key_mapping[$membership]])) {
+            return TRUE;
+          }
+        }
+      }
+    }
+
     // Block all others.
     drupal_set_message(t('You have no permission to login to this website'), 'error');
     return FALSE;
