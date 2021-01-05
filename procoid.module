@@ -306,7 +306,7 @@ function procoid_views_api() {
  * Custom cron job to import user information.
  */
 function procoid_customcron() {
-  $updated_user = array();
+  $updated_users = array();
   // Get relations.
   $relations = array();
   $selection_id = variable_get('procoid_selection');
