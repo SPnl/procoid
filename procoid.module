@@ -306,6 +306,7 @@ function procoid_views_api() {
  * Custom cron job to import user information.
  */
 function procoid_customcron() {
+  $updated_user = array();
   // Get relations.
   $relations = array();
   $selection_id = variable_get('procoid_selection');
@@ -342,10 +343,27 @@ function procoid_customcron() {
         $userinfo['sp_custom/extra'][$custom_field] = $relation[$custom_field];
       }
       // Store userinfo in user account.
-      procoid_save_userinfo($userinfo);
+      $uid = procoid_save_userinfo($userinfo);
+      $updated_users[$uid] = $uid;
     }
     if (drupal_is_cli()) {
       print("\n");
+    }
+  }
+
+  // Remove mapped roles from users that were not updated.
+  $mapped_roles = procoid_get_mapped_roles();
+  foreach ($mapped_roles as $role_id) {
+    // Get users with role.
+    $users = procoid_get_users_by_role($role_id);
+    foreach ($users as $user) {
+      if (!in_array($user->uid, $updated_users)) {
+        $account = user_load($user->uid);
+        if (isset($account->roles[$role_id])) {
+          unset($account->roles[$role->rid]);
+          user_save($account);
+        }
+      }
     }
   }
 }

@@ -345,4 +345,39 @@ function procoid_save_userinfo($userinfo) {
   }
 
   module_invoke_all('openid_connect_post_authorize', NULL, $account, $userinfo, 'procurios', $account_is_new);
+  return $account->uid;
+}
+
+/**
+ * Get mapped roles.
+ */
+function procoid_get_mapped_roles() {
+  $mapped_roles = array();
+  $function_role_mapping = variable_get('procoid_function_role_mapping', array());
+  foreach ($function_role_mapping as $role_id => $functions) {
+    foreach ($functions as $function_id => $state) {
+      if (!empty($state)) {
+        $mapped_roles[$role_id] = $role_id;
+        break 2;
+      }
+    }
+  }
+  return $mapped_roles;
+}
+
+/**
+ * Get users by role.
+ */
+function procoid_get_users_by_role($rid = 1) { // rid = Role Id from users_roles table
+    $query = db_select('users', 'u');
+    $query->fields('u', array('uid', 'name'));
+    $query->innerJoin('users_roles', 'r', 'r.uid = u.uid');
+    $query->condition('r.rid', $rid);
+    $query->orderBy('u.name');
+    $result = $query->execute();
+    $users = array();
+    foreach ($result as $user) {
+        $users[] = $user;
+    }
+    return $users;
 }
