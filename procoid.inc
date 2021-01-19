@@ -215,11 +215,10 @@ function procoid_get_configurable_roles() {
   // Remove administrator role.
   if (($key = array_search('administrator', $roles)) !== false) {
     unset($roles[$key]);
+    unset($roles[3]);
   }
   // Remove authenticated user role.
-  if (($key = array_search('authenticated user', $roles)) !== false) {
-    unset($roles[$key]);
-  }
+  unset($roles[2]);
   return $roles;
 }
 

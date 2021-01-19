@@ -364,27 +364,32 @@ function procoid_customcron() {
     }
   }
 
-  // Remove mapped roles from users that were not updated.
-  $removed = FALSE;
-  drush_print("\nRemoving roles from users that were not imported.");
+
+  // Update roles from users that were not imported.
+  drush_print("\nUpdating users that were not imported.");
+  $users = entity_load('user');
   $mapped_roles = procoid_get_mapped_roles();
-  foreach ($mapped_roles as $role_id) {
-    // Get users with role.
-    $users = procoid_get_users_by_role($role_id);
-    foreach ($users as $user) {
-      if (!in_array($user->uid, $updated_users)) {
-        $account = user_load($user->uid);
-        if (isset($account->roles[$role_id])) {
+  $removed = FALSE;
+  foreach ($users as $user) {
+    if (!in_array($user->uid, $updated_users)) {
+      // Remove mapped roles.
+      foreach ($mapped_roles as $role_id) {
+        if (!empty($user->roles[$role_id])) {
           if (drupal_is_cli()) {
             print('.');
-           }
+          }
           $removed = TRUE;
-          unset($account->roles[$role_id]);
-          user_save($account);
+          unset($user->roles[$role_id]);
+          user_save($user);
         }
       }
+      // Remove functions.
+      db_delete('procoid_function')
+        ->condition('uid', $user->uid)
+        ->execute();
     }
   }
+
   if (!$removed) {
     drush_print("No roles were removed.");
   }
