@@ -312,13 +312,20 @@ function procoid_customcron() {
   $selection_id = variable_get('procoid_selection');
   if (!empty($selection_id)) {
     drush_print('Gettings contacts from Procurios selection.');
+    $finished = FALSE;
     $page_nr = 1;
-    while ($relations_batch = procapi_selection_get_relations($selection_id, $page_nr)) {
-      if (drupal_is_cli()) {
-        print('.');
-       }
-      $page_nr++;
-      $relations = array_merge($relations, $relations_batch);
+    while ($finished === FALSE) {
+      $relations_batch = procapi_selection_get_relations($selection_id, $page_nr);
+      if (empty($relations_batch)) {
+        $finished = TRUE;
+      }
+      else {
+        if (drupal_is_cli()) {
+          print('.');
+         }
+        $page_nr++;
+        $relations = array_merge($relations, $relations_batch);
+      }
     }
   }
 
