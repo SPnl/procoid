@@ -113,7 +113,7 @@ function procoid_openid_connect_pre_authorize($tokens, $account, $userinfo, $cli
  */
 function procoid_openid_connect_post_authorize($tokens, $account, $userinfo, $client_name, $is_new) {
   drupal_set_message($is_new ? t('Welcome!') : t('Welcome back!'));
-  if ($client_name !== 'procurios' || empty($userinfo['sp_custom/functions'])) {
+  if ($client_name !== 'procurios') {
     return;
   }
 
