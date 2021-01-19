@@ -112,9 +112,12 @@ function procoid_openid_connect_pre_authorize($tokens, $account, $userinfo, $cli
  *   Whether the account has just been created via OpenID Connect.
  */
 function procoid_openid_connect_post_authorize($tokens, $account, $userinfo, $client_name, $is_new) {
-  drupal_set_message($is_new ? t('Welcome!') : t('Welcome back!'));
   if ($client_name !== 'procurios') {
     return;
+  }
+
+  if (!drupal_is_cli()) {
+    drupal_set_message($is_new ? t('Welcome!') : t('Welcome back!'));
   }
 
   $user_functions = $userinfo['sp_custom/functions'];
@@ -311,7 +314,7 @@ function procoid_customcron() {
   $relations = array();
   $selection_id = variable_get('procoid_selection');
   if (!empty($selection_id)) {
-    drush_print('Gettings contacts from Procurios selection.');
+    drush_print('Gettings relations from Procurios selection.');
     $finished = FALSE;
     $page_nr = 1;
     while ($finished === FALSE) {
@@ -329,7 +332,10 @@ function procoid_customcron() {
     }
   }
 
-  if (!empty($relations)) {
+  if (empty($relations)) {
+    drush_print("No relations found.");
+  }
+  else {
     drush_print("\nImporting / updating user accounts.");
     foreach($relations as $relation) {
       if (drupal_is_cli()) {
@@ -359,6 +365,8 @@ function procoid_customcron() {
   }
 
   // Remove mapped roles from users that were not updated.
+  $removed = FALSE;
+  drush_print("\nRemoving roles from users that were not imported.");
   $mapped_roles = procoid_get_mapped_roles();
   foreach ($mapped_roles as $role_id) {
     // Get users with role.
@@ -367,11 +375,21 @@ function procoid_customcron() {
       if (!in_array($user->uid, $updated_users)) {
         $account = user_load($user->uid);
         if (isset($account->roles[$role_id])) {
-          unset($account->roles[$role->rid]);
+          if (drupal_is_cli()) {
+            print('.');
+           }
+          $removed = TRUE;
+          unset($account->roles[$role_id]);
           user_save($account);
         }
       }
     }
+  }
+  if (!$removed) {
+    drush_print("No roles were removed.");
+  }
+  if (drupal_is_cli()) {
+    print("\n");
   }
 }
 

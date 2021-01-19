@@ -358,7 +358,7 @@ function procoid_get_mapped_roles() {
     foreach ($functions as $function_id => $state) {
       if (!empty($state)) {
         $mapped_roles[$role_id] = $role_id;
-        break 2;
+        break;
       }
     }
   }
