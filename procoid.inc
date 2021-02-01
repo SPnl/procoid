@@ -330,10 +330,6 @@ function procoid_save_userinfo($userinfo) {
     $account = procoid_user_load_by_registrationnumber($userinfo);
   }
 
-  if (empty($account)) {
-    $account = procoid_user_load_by_email($userinfo);
-  }
-
   if ($account) {
     // Connect account to procurios relation.
     openid_connect_connect_account($account, 'procurios', $sub);
