@@ -278,17 +278,37 @@ function procoid_user_load_by_registrationnumber($userinfo) {
 
         // Update userinfo.
         $edit = array(
-          'name' => openid_connect_generate_username($sub, $userinfo, 'procurios'),
+          'name' => openid_connect_generate_username($userinfo['sub'], $userinfo, 'procurios'),
           'pass' => user_password(),
           'mail' => $userinfo['email'],
           'init' => $userinfo['email'],
           'status' => 1,
-          'openid_connect_client' => $client_name,
-          'openid_connect_sub' => $sub,
+          'openid_connect_client' => 'procurios',
+          'openid_connect_sub' => $userinfo['sub'],
         );
         $account = user_save($account, $edit);
         return $account;
       }
+    }
+  }
+}
+
+function procoid_user_load_by_email($userinfo) {
+  if (!empty($userinfo['email'])) {
+    $account = user_load_by_mail($userinfo['email']);
+    if (!empty($account)) {
+      // Update userinfo.
+      $edit = array(
+        'name' => openid_connect_generate_username($userinfo['sub'], $userinfo, 'procurios'),
+        'pass' => user_password(),
+        'mail' => $userinfo['email'],
+        'init' => $userinfo['email'],
+        'status' => 1,
+        'openid_connect_client' => 'procurios',
+        'openid_connect_sub' => $userinfo['sub'],
+      );
+      $account = user_save($account, $edit);
+      return $account;
     }
   }
 }
@@ -310,6 +330,9 @@ function procoid_save_userinfo($userinfo) {
     $account = procoid_user_load_by_registrationnumber($userinfo);
   }
 
+  if (empty($account)) {
+    $account = procoid_user_load_by_email($userinfo);
+  }
 
   if ($account) {
     // Connect account to procurios relation.
