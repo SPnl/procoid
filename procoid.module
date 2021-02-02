@@ -186,10 +186,12 @@ function procoid_openid_connect_post_authorize($tokens, $account, $userinfo, $cl
 
   // Update user roles.
   $function_role_mapping = variable_get('procoid_function_role_mapping', array());
+  $mapped_roles = procoid_get_mapped_roles();
   $user_roles_have_changed = FALSE;
   
   // Function role mapping.
-  foreach ($function_role_mapping as $role_id => $functions) {
+  foreach ($mapped_roles as $role_id) {
+    $functions = $function_role_mapping[$role_id];
     $role = user_role_load($role_id);
     if (!empty($role)) {
       $user_has_role = FALSE;
