@@ -63,6 +63,7 @@ function procoid_get_function_list() {
     24 => 'waarnemer',
     29 => 'webmaster',
     13 => 'wethouder',
+    50 => 'landelijk CRM gebruiker',
   );
 }
 
