@@ -414,6 +414,7 @@ function procoid_get_sp_custom_fields() {
     'phone',
     'phone_mobile',
     'phone_work',
+    'phone_work_mobile',
     'email_work',
     'spMember',
     'roodMember',
