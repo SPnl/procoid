@@ -7,7 +7,7 @@ This module has dependencies on the following custom(ized) SP modules:
 * [https://github.com/SPnl/openid_connect](https://github.com/SPnl/openid_connect)
 * [https://github.com/SPnl/procapi](https://github.com/SPnl/procapi)
 
-Install and configure these modules before installing procoid.
+Install these modules before installing procoid.
 
 ## usage ##
 First you need to configure the Procurios API in the [procapi module](https://github.com/SPnl/procapi) settings. The procoid module needs the Procurios API sp_custom scope. **Let op, dit zijn niet dezelfde credentials als die voor de procoid functionaliteit!**
