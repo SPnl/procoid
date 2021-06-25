@@ -262,38 +262,6 @@ function procoid_get_user_field_list() {
 /**
  * Load user by registrationnumber.
  */
-function procoid_user_load_by_registrationnumber($userinfo) {
-  if (!empty($userinfo['sp_custom/extra']['contact_number'])) {
-    // Check if an existing account can be found by comparing contact number.
-    $contactnumber_field = variable_get('procoid_contactnumber_field');
-    if (!empty($contactnumber_field)) {
-      // Get account.
-      $query = new EntityFieldQuery();
-      $query
-        ->entityCondition('entity_type', 'user')
-        ->fieldCondition($contactnumber_field, 'value', $userinfo['sp_custom/extra']['contact_number'], '=');
-      $result = $query->execute();
-      if (!empty($result['user'])) {
-        $userdata = array_pop($result['user']);
-        $account = user_load($userdata->uid);
-
-        // Update userinfo.
-        $edit = array(
-          'name' => openid_connect_generate_username($userinfo['sub'], $userinfo, 'procurios'),
-          'pass' => user_password(),
-          'mail' => $userinfo['email'],
-          'init' => $userinfo['email'],
-          'status' => 1,
-          'openid_connect_client' => 'procurios',
-          'openid_connect_sub' => $userinfo['sub'],
-        );
-        $account = user_save($account, $edit);
-        return $account;
-      }
-    }
-  }
-}
-
 function procoid_user_load_by_email($userinfo) {
   if (!empty($userinfo['email'])) {
     $account = user_load_by_mail($userinfo['email']);
@@ -328,7 +296,7 @@ function procoid_save_userinfo($userinfo) {
   $account = openid_connect_user_load_by_sub($sub, 'procurios');
 
   if (empty($account)) {
-    $account = procoid_user_load_by_registrationnumber($userinfo);
+    $account = procoid_user_load_by_email($userinfo);
   }
 
   if ($account) {
