@@ -9,13 +9,6 @@ function procoid_views_data() {
     'weight' => -10,
   );
 
-  $data['procoid_function']['table']['join'] = array(
-    'users' => array(
-      'left_field' => 'uid',
-      'field' => 'uid',
-    ),
-  );
-
   $data['procoid_function']['uid'] = array(
     'title' => t('User id'),
     'relationship' => array(
