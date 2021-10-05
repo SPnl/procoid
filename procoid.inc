@@ -312,7 +312,7 @@ function procoid_save_userinfo($userinfo) {
   else {
     // Check whether the e-mail address is valid.
     if (!filter_var($userinfo['email'], FILTER_VALIDATE_EMAIL)) {
-      drupal_set_message(t('The e-mail address %mail is not valid.', array('%mail' => $userinfo['email'])), 'error');
+      drupal_set_message(t('The e-mail address %email is not valid.', array('%email' => $userinfo['email'])), 'error');
 
       return FALSE;
     }
