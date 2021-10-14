@@ -333,7 +333,6 @@ function procoid_customcron() {
       }
     }
   }
-
   if (empty($relations)) {
     drush_print("No relations found.");
   }
@@ -357,16 +356,18 @@ function procoid_customcron() {
       foreach ($custom_fields as $custom_field) {
         $userinfo['sp_custom/extra'][$custom_field] = $relation[$custom_field];
       }
-      // Store userinfo in user account.
-      $uid = procoid_save_userinfo($userinfo);
-      $updated_users[$uid] = $uid;
+      // Store userinfo if email is valid into user account
+      if (filter_var($userinfo['email'], FILTER_VALIDATE_EMAIL)) {
+        $uid = procoid_save_userinfo($userinfo);
+        $updated_users[$uid] = $uid;
+      }else{
+        drupal_set_message(t('The e-mail address is invalid for user: %name.', array('%name' => $userinfo['name'])), 'error');
+      }
     }
     if (drupal_is_cli()) {
       print("\n");
     }
   }
-
-
   // Update roles from users that were not imported.
   drush_print("\nUpdating users that were not imported.");
   $users = entity_load('user');
@@ -391,7 +392,6 @@ function procoid_customcron() {
         ->execute();
     }
   }
-
   if (!$removed) {
     drush_print("No roles were removed.");
   }
